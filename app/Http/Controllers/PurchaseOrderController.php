@@ -16,29 +16,38 @@ class PurchaseOrderController extends Controller
      */
     public function purchaseOrderTotals(PurchaseOrderTotalsRequest $request)
     {
-        $responses = [];
+        $promises = [];
         foreach ($request->purchase_order_ids as $purchaseOrderId) {
-            $responses[] = Http::withBasicAuth('interview-test@cartoncloud.com.au', 'test123456')->get('https://api.cartoncloud.com.au/CartonCloud_Demo/' . $purchaseOrderId . '?version=5&associated=true');
+            $promises[] = Http::withBasicAuth('interview-test@cartoncloud.com.au', 'test123456')
+               ->async()
+               ->get('https://api.cartoncloud.com.au/CartonCloud_Demo/PurchaseOrders/' . $purchaseOrderId . '?version=5&associated=true');
         }
+        // Wait to complete all REST CALLS
+        $responses  = collect($promises)->map(function ($promise) {
+            return $promise->wait();
+        });
 
         $grouped = [];
         $productTypeOneTotal = 0;
         $productTypeTwoTotal = 0;
         $productTypeThreeTotal = 0;
-        foreach ($responses as $response) {
-            $json = $response->json();
-            $products = $json['data']['PurchaseOrderProduct'];
 
-            foreach ($products as $product) {
 
-                $grouped[$product['product_type_id']] = $product;
+        foreach ($responses  as $response) {
+            if ($response->successful()) {
+                $json = $response->json();
+                $products = $json['data']['PurchaseOrderProduct'];
 
-                if ($product['product_type_id'] == 1) {
-                    $productTypeOneTotal = $productTypeOneTotal + ($product['unit_quantity_initial'] * $product['weight']);
-                } else if ($product['product_type_id'] == 2) {
-                    $productTypeTwoTotal = $productTypeTwoTotal + ($product['unit_quantity_initial'] * $product['volume']);
-                } else if ($product['product_type_id'] == 3) {
-                    $productTypeThreeTotal = $productTypeThreeTotal + ($product['unit_quantity_initial'] * $product['weight']);
+                foreach ($products as $product) {
+
+                    $grouped[$product['product_type_id']] = $product;
+                    if ($product['product_type_id'] == 1) {
+                        $productTypeOneTotal = $productTypeOneTotal + ($product['unit_quantity_initial'] * $product['Product']['weight']);
+                    } else if ($product['product_type_id'] == 2) {
+                        $productTypeTwoTotal = $productTypeTwoTotal + ($product['unit_quantity_initial'] * $product['Product']['volume']);
+                    } else if ($product['product_type_id'] == 3) {
+                        $productTypeThreeTotal = $productTypeThreeTotal + ($product['unit_quantity_initial'] * $product['Product']['weight']);
+                    }
                 }
             }
         }
