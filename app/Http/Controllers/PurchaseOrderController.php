@@ -6,6 +6,7 @@ use App\Http\Requests\PurchaseOrderTotalsRequest;
 use App\Services\PurchaseOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class PurchaseOrderController extends Controller
 {
@@ -34,10 +35,9 @@ class PurchaseOrderController extends Controller
         $failedRequests = [];
 
         foreach ($responses  as  $key => $response) {
+            $json = $response->json();
             if ($response->successful()) {
-                $json = $response->json();
-                $products = $json['data']['PurchaseOrderProduct'];
-
+               $products = $json['data']['PurchaseOrderProduct'];
                 foreach ($products as $product) {
 
                     $grouped[$product['product_type_id']] = $product;
@@ -51,7 +51,8 @@ class PurchaseOrderController extends Controller
                 }
             }
             else {
-                $failedRequests[] = $request->purchase_order_ids[$key];
+                $failedRequests[] = $request->purchase_order_ids[$key]; //store the purchase order id
+                Log::channel('slack')->error('Failed to fetch purchase order: ' . $response->status() . '. Error message: ' . json_encode($json['info']).'  (for Purchase Order ID: ' . $request->purchase_order_ids[$key] .')'); //slack the error messages
             }
         }
 
@@ -71,8 +72,8 @@ class PurchaseOrderController extends Controller
         ];
 
         return response()->json([
-            'result' => $result,
-            'failed_requests' => $failedRequests
+            'result'            => $result,
+            'failed_requests'   => $failedRequests
         ]);
     }
 }
