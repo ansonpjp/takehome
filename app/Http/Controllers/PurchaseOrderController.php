@@ -31,9 +31,9 @@ class PurchaseOrderController extends Controller
         $productTypeOneTotal = 0;
         $productTypeTwoTotal = 0;
         $productTypeThreeTotal = 0;
+        $failedRequests = [];
 
-
-        foreach ($responses  as $response) {
+        foreach ($responses  as  $key => $response) {
             if ($response->successful()) {
                 $json = $response->json();
                 $products = $json['data']['PurchaseOrderProduct'];
@@ -49,6 +49,9 @@ class PurchaseOrderController extends Controller
                         $productTypeThreeTotal = $productTypeThreeTotal + ($product['unit_quantity_initial'] * $product['Product']['weight']);
                     }
                 }
+            }
+            else {
+                $failedRequests[] = $request->purchase_order_ids[$key];
             }
         }
 
@@ -68,7 +71,8 @@ class PurchaseOrderController extends Controller
         ];
 
         return response()->json([
-            'result' => $result
+            'result' => $result,
+            'failed_requests' => $failedRequests
         ]);
     }
 }
