@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Factories\CalculatorFactory;
 use App\Http\Requests\PurchaseOrderTotalsRequest;
 use App\Services\PurchaseOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Nette\InvalidArgumentException;
 
 class PurchaseOrderController extends Controller
 {
@@ -24,56 +26,54 @@ class PurchaseOrderController extends Controller
                ->get('https://api.cartoncloud.com.au/CartonCloud_Demo/PurchaseOrders/' . $purchaseOrderId . '?version=5&associated=true');
         }
         // Wait to complete all REST CALLS
-        $responses  = collect($promises)->map(function ($promise) {
-            return $promise->wait();
+        $responses = collect($promises)->map(function ($promise) {
+            try{
+                return $promise->wait();
+            } catch (\Exception $e){
+                Log::channel('slack')->error('Failed to fetch purchase order: ' . $e->getMessage());
+                return null;
+            }
         });
 
-        $grouped = [];
-        $productTypeOneTotal = 0;
-        $productTypeTwoTotal = 0;
-        $productTypeThreeTotal = 0;
+        $totals = [
+            1 => 0.0,
+            2 => 0.0,
+            3 => 0.0
+        ];
+
         $failedRequests = [];
+        foreach ($responses as $key => $response) {
+            if($response && $response->successful()){
+                $json = $response->json();
+                $products = $json['data']['PurchaseOrderProduct'];
 
-        foreach ($responses  as  $key => $response) {
-            $json = $response->json();
-            if ($response->successful()) {
-               $products = $json['data']['PurchaseOrderProduct'];
                 foreach ($products as $product) {
-
-                    $grouped[$product['product_type_id']] = $product;
-                    if ($product['product_type_id'] == 1) {
-                        $productTypeOneTotal = $productTypeOneTotal + ($product['unit_quantity_initial'] * $product['Product']['weight']);
-                    } else if ($product['product_type_id'] == 2) {
-                        $productTypeTwoTotal = $productTypeTwoTotal + ($product['unit_quantity_initial'] * $product['Product']['volume']);
-                    } else if ($product['product_type_id'] == 3) {
-                        $productTypeThreeTotal = $productTypeThreeTotal + ($product['unit_quantity_initial'] * $product['Product']['weight']);
+                    try {
+                        $calculator = CalculatorFactory::getCalculator($product['product_type_id']);
+                        $totals[$product['product_type_id']] += $calculator->calculate($product);
+                    } catch (InvalidArgumentException $e){
+                        Log::channel('slack')->error('Failed to fetch purchase order: ' . $e->getMessage());
                     }
                 }
             }
-            else {
-                $failedRequests[] = $request->purchase_order_ids[$key]; //store the purchase order id
-                Log::channel('slack')->error('Failed to fetch purchase order: ' . $response->status() . '. Error message: ' . json_encode($json['info']).'  (for Purchase Order ID: ' . $request->purchase_order_ids[$key] .')'); //slack the error messages
+            else{
+                $failedRequests[] = $request->purchase_order_ids[$key];
+                $json = $response ? $response->json() : null;
+                Log::channel('slack')->error('Failed to fetch purchase order: ' . ($response ? $response->status() : 'No response') . '. Error message: ' . json_encode($json['info'] ?? '') . ' (for Purchase Order ID: ' . $request->purchase_order_ids[$key] . ')');
             }
         }
 
-        $result = [
-            [
-                'product_type_id' => 1,
-                'total' => $productTypeOneTotal,
-            ],
-            [
-                'product_type_id' => 2,
-                'total' => $productTypeTwoTotal,
-            ],
-            [
-                'product_type_id' => 3,
-                'total' => $productTypeThreeTotal,
-            ]
-        ];
+        $result = [];
+        foreach ($totals as $productTypeId => $total) {
+            $result[] = [
+                'product_type_id' => $productTypeId,
+                'total' => number_format((float)$total,1)
+            ];
+        }
 
         return response()->json([
-            'result'            => $result,
-            'failed_requests'   => $failedRequests
+            'result' => $result,
+            'failedRequests' => $failedRequests
         ]);
     }
 }
