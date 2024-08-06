@@ -2,7 +2,6 @@
 namespace App\Services;
 
 use App\Factories\CalculatorFactory;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Nette\InvalidArgumentException;
 
@@ -16,19 +15,10 @@ class PurchaseOrderService extends BaseWebService
     {
         $promises = [];
         foreach ($data['purchase_order_ids'] as $purchaseOrderId) {
-            $promises[] = Http::withBasicAuth('interview-test@cartoncloud.com.au', 'test123456')
-                ->async()
-                ->get('https://api.cartoncloud.com.au/CartonCloud_Demo/PurchaseOrders/' . $purchaseOrderId . '?version=5&associated=true');
+            $promises[] = $this->makeAsyncRequest('/CartonCloud_Demo/PurchaseOrders/' . $purchaseOrderId . '?version=5&associated=true');
         }
         // Wait to complete all REST CALLS
-        $responses = collect($promises)->map(function ($promise) {
-            try{
-                return $promise->wait();
-            } catch (\Exception $e){
-                Log::channel('slack')->error('Failed to fetch purchase order: ' . $e->getMessage());
-                return null;
-            }
-        });
+        $responses = $this->handleAsyncResponse($promises);
 
         $totals = [
             1 => 0.0,
@@ -45,9 +35,11 @@ class PurchaseOrderService extends BaseWebService
                 foreach ($products as $product) {
                     try {
                         $calculator = CalculatorFactory::getCalculator($product['product_type_id']);
-                        $totals[$product['product_type_id']] += $calculator->calculate($product);
+                        if($calculator){
+                            $totals[$product['product_type_id']] += $calculator->calculate($product);
+                        }
                     } catch (InvalidArgumentException $e){
-                        Log::channel('slack')->error('Failed to fetch purchase order: ' . $e->getMessage());
+                        Log::channel('slack')->error('Error in product calculation: ' . $e->getMessage());
                     }
                 }
             }
@@ -66,9 +58,9 @@ class PurchaseOrderService extends BaseWebService
             ];
         }
 
-        return response()->json([
-            'result' => $result,
-            'failedRequests' => $failedRequests
-        ]);
+        return [
+          'result' => $result,
+          'failedRequests' => $failedRequests
+        ];
     }
 }

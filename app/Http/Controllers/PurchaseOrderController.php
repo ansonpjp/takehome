@@ -2,13 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Factories\CalculatorFactory;
 use App\Http\Requests\PurchaseOrderTotalsRequest;
 use App\Services\PurchaseOrderService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Nette\InvalidArgumentException;
 
 class PurchaseOrderController extends Controller
 {
@@ -20,7 +16,8 @@ class PurchaseOrderController extends Controller
     public function purchaseOrderTotals(PurchaseOrderTotalsRequest $request)
     {
         $purchaseOrderService = new PurchaseOrderService();
-        return $purchaseOrderService->calculateTotal($request->all());
+        $data = $purchaseOrderService->calculateTotal($request->all());
 
+        return response()->json($data);
     }
 }
