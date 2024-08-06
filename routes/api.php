@@ -26,7 +26,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 /*
  * sample way to create a TOKEN for SANCTUM.
- * change this to web route when you integrate this as an FEATURE for generating TOKENS for clients
+ * change this to web route when you integrate this as an FEATURE for generating TOKENS for THE CARTONCLOUD CLIENTS
 
 Route::get('/user', function (Request $request) {
     $user = \App\Models\User::where('email', $request->email)->first();
