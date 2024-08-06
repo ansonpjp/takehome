@@ -15,8 +15,32 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+//All requests send through SANCTUM middleware
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+    Route::post('/test', [PurchaseOrderController::class, 'purchaseOrderTotals']);
 });
 
-Route::middleware('auth.basic')->post('/test', [PurchaseOrderController::class, 'purchaseOrderTotals']);
+
+/*
+ * sample way to create a TOKEN for SANCTUM.
+ * change this to web route when you integrate this as an FEATURE for generating TOKENS for clients
+
+Route::get('/user', function (Request $request) {
+    $user = \App\Models\User::where('email', $request->email)->first();
+
+    if (! $user || ! Hash::check($request->password, $user->password)) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
+    }
+
+    $token = $user->createToken('api-token')->plainTextToken;
+
+    return response()->json(['token' => $token]);
+//    return $request->user();
+});
+
+//*/
+
+
