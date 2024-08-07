@@ -18,6 +18,10 @@ class PurchaseOrderService extends BaseWebService
     public function calculateTotal(array $data)
     {
         $purchaseOrderIds = $data['purchase_order_ids'];
+        Log::channel('slack_rest_logging')->info('Received a request to calculate total for purchase orders: ', [
+           'purchase_order_ids' => $purchaseOrderIds
+        ]);
+
         // Check if the count exceeds 50
         if (count($purchaseOrderIds) > 50) {
             // Dispatching as JOB for performance optimisation
@@ -27,7 +31,7 @@ class PurchaseOrderService extends BaseWebService
                 'status' => 'Processing',
                 'estimated_time' => 'Please allow up to 30 minutes for processing. You will receive an emails with results once the process is complete.'
             ]);
-        }     
+        }
 
         //async call
         $promises = $this->createAsyncRequests($purchaseOrderIds);
