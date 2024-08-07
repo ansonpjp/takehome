@@ -19,7 +19,7 @@ class PurchaseOrderService extends BaseWebService
     {
         $purchaseOrderIds = $data['purchase_order_ids'];
         // Check if the count exceeds 50
-        if (count($purchaseOrderIds) > 4) {
+        if (count($purchaseOrderIds) > 50) {
             // Dispatching as JOB for performance optimisation
             ProcessPurchaseOrders::dispatch($purchaseOrderIds);
             return response()->json([
@@ -27,7 +27,7 @@ class PurchaseOrderService extends BaseWebService
                 'status' => 'Processing',
                 'estimated_time' => 'Please allow up to 30 minutes for processing. You will receive an emails with results once the process is complete.'
             ]);
-        }
+        }     
 
         //async call
         $promises = $this->createAsyncRequests($purchaseOrderIds);
