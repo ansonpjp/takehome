@@ -41,6 +41,8 @@ class ProcessPurchaseOrders implements ShouldQueue
         $result = $purchaseOrderService->processResponse($response, $this->purchaseOrderIds);
 
         $data = $purchaseOrderService->prepareResult($result);
+
+        Mail::to('ansonpjp@gmail.com')->send(new PurchaseOrderResultsMail($data));
         Log::channel('slack_results')->info('Processed Purchase order through job: ' . json_encode($data));
     }
 }
