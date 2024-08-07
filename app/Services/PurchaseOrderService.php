@@ -42,6 +42,11 @@ class PurchaseOrderService extends BaseWebService
         //process the responses
         $result = $this->processResponse($responses, $purchaseOrderIds);
 
+        //dispatch the FAILED RESPONSES to call later
+        if(!empty($result['failedRequests'])){
+            ProcessPurchaseOrders::dispatch($result['failedRequests']);
+        }
+
         //prepare the results
         return $this->prepareResult($result);
 
