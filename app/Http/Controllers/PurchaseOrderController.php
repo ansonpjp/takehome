@@ -15,8 +15,9 @@ class PurchaseOrderController extends Controller
      */
     public function purchaseOrderTotals(PurchaseOrderTotalsRequest $request)
     {
+        $purchaseOrderIds = array_map('intval', $request->input('purchase_order_ids')); //converts the elements of array to Integer
         $purchaseOrderService = new PurchaseOrderService();
-        $data = $purchaseOrderService->calculateTotal($request->all());
+        $data = $purchaseOrderService->calculateTotal($purchaseOrderIds);
 
         return response()->json($data);
     }

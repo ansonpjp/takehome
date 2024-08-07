@@ -15,9 +15,8 @@ class PurchaseOrderService extends BaseWebService
     /*
      *  function to fetch the product details and calculate the total grouped by product_type_id
      */
-    public function calculateTotal(array $data)
+    public function calculateTotal(array $purchaseOrderIds)
     {
-        $purchaseOrderIds = $data['purchase_order_ids'];
         Log::channel('slack_rest_logging')->info('Received a request to calculate total for purchase orders: ', [
            'purchase_order_ids' => $purchaseOrderIds
         ]);
