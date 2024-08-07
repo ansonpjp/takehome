@@ -4,6 +4,7 @@ namespace App\Services;
 use App\Factories\CalculatorFactory;
 use Illuminate\Support\Facades\Log;
 use Nette\InvalidArgumentException;
+use App\Jobs\ProcessPurchaseOrders;
 
 /*
  * Class PurchaseOrderService
@@ -16,14 +17,26 @@ class PurchaseOrderService extends BaseWebService
      */
     public function calculateTotal(array $data)
     {
-        //  async call
-        $promises = $this->createAsyncRequests($data['purchase_order_ids']);
+        $purchaseOrderIds = $data['purchase_order_ids'];
+        // Check if the count exceeds 50
+        if (count($purchaseOrderIds) > 4) {
+            // Dispatching as JOB for performance optimisation
+            ProcessPurchaseOrders::dispatch($purchaseOrderIds);
+            return response()->json([
+                'message' => 'Your orders are being processed. Due to the large number of orders, processing might take some time.',
+                'status' => 'Processing',
+                'estimated_time' => 'Please allow up to 30 minutes for processing. You will receive an emails with results once the process is complete.'
+            ]);
+        }
+
+        //async call
+        $promises = $this->createAsyncRequests($purchaseOrderIds);
 
         // handle the responses
         $responses = $this->handleAsyncResponse($promises);
 
         //process the responses
-        $result = $this->processResponse($responses, $data['purchase_order_ids']);
+        $result = $this->processResponse($responses, $purchaseOrderIds);
 
         //prepare the results
         return $this->prepareResult($result);

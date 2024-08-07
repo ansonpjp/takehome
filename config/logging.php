@@ -69,12 +69,19 @@ return [
 
         'slack' => [
             'driver' => 'slack',
-            'url' => env('LOG_SLACK_WEBHOOK_URL'),
+            'url' => env('LOG_SLACK_WEBHOOK_URL', 'https://hooks.slack.com/services/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'),
             'username' => 'Laravel Log',
             'emoji' => ':boom:',
             'level' => env('LOG_LEVEL', 'critical'),
         ],
 
+        'slack_results' => [
+            'driver' => 'slack',
+            'url' => env('LOG_SLACK_RESULTS_WEBHOOK_URL', 'https://hooks.slack.com/services/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'),
+            'username' => 'Laravel Log',
+            'emoji' => ':boom:',
+            'level' => env('LOG_LEVEL', 'critical')
+        ],
         'papertrail' => [
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),

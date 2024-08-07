@@ -23,7 +23,7 @@ class BaseWebService
             ->async()
             ->get($this->baseurl . $endpoint);
     }
-    protected function handleAsyncResponse($promises)
+    public function handleAsyncResponse($promises)
     {
         return collect($promises)->map(function ($promise) {
             try {
