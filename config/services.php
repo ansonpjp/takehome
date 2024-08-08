@@ -30,4 +30,10 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+
+    'restapi' => [
+        'username' => env('RESTAPI_USERNAME', 'interview-test@cartoncloud.com.au'),
+        'password' => env('RESTAPI_PASSWORD', 'test123456'),
+        'baseurl' => env('RESTAPI_URL', 'https://api.cartoncloud.com.au')
+    ]
 ];
